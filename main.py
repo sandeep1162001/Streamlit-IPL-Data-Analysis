@@ -32,7 +32,6 @@ def h2h(batsman, bowler):
         st.warning(f"No encounters found between {batsman} and {bowler}.")
         return
 
-    # Batting stats
     runs = h2h_df['runs_batter'].sum()
     balls = len(h2h_df)
     dismissals = h2h_df['striker_out'].sum()
@@ -48,6 +47,7 @@ def h2h(batsman, bowler):
     bowling_economy = (runs*6)/balls
     bowling_average = runs/dismissals if dismissals > 0 else runs
     bowling_strike_rate = balls/dismissals
+    
 
     st.subheader(f" Head-to-Head: {batsman} vs. {bowler} ")
 
@@ -64,12 +64,20 @@ def h2h(batsman, bowler):
 
     with col2:
         st.write(f"Dismissals: {dismissals}")
+
         st.write(f"Bowling Strike rate: {bowling_strike_rate:.2f}")      
         st.write(f"Bowling Economy: {bowling_economy:.2f}")
         st.write(f"Bowling Average: {bowling_average:.2f}")
         st.write(f"Boundary Percentage: {boundary_pct:.2f} %")
         st.write(f"Dot Balls: {dot_balls}")
         st.write(f"Dot percentage: {dot_pct:.2f} %")
+
+    if bowling_economy < 6:
+        st.success("Excellent control by bowler ")
+    elif bowling_economy > 9:
+        st.error(f"Expensive against this {batsman} ")
+    else:
+        st.info("Decent performance ")
 
 
 
@@ -131,9 +139,9 @@ def team_vs_bowler(bowler, team):
     runs = team_vs_bowler_df['runs_batter'].sum()
     balls = len(team_vs_bowler_df)
     dismissals = team_vs_bowler_df['striker_out'].sum()
-    economy = (runs*6)/balls
+    economy = (runs*6)/balls if balls > 0 else 0
     average = runs/dismissals if dismissals > 0 else runs
-    strike_rate = balls/dismissals
+    strike_rate = balls/dismissals if dismissals > 0 else balls
     overs = balls // 6 + (balls % 6) / 10
     dot_balls = team_vs_bowler_df[
             (team_vs_bowler_df['runs_total'] == 0) &
@@ -160,6 +168,193 @@ def team_vs_bowler(bowler, team):
         st.write(f"Fours Given : {fours}")
         st.write(f"sixes Given : {sixes}")
         st.write(f"Boundary percent : {boundary_percent:.2f} %")
+    if economy < 6:
+        st.success("Excellent control by bowler ")
+    elif economy > 9:
+        st.error("Expensive against this team ")
+    else:
+        st.info("Decent performance ")
+
+
+# --- Function to analyze Bowler vs. stadium ---
+def bowler_vs_stadium(venue, bowler):
+    bowler_vs_stadium_df = df[(df['venue'] == venue) & (df['bowler'] == bowler)]
+    if bowler_vs_stadium_df.empty:
+        st.warning(f"No matches played at {venue} by {bowler}.")
+        return
+    runs = bowler_vs_stadium_df['runs_batter'].sum()
+    balls = len(bowler_vs_stadium_df)
+    dismissals = bowler_vs_stadium_df['striker_out'].sum()
+    economy = (runs*6)/balls if balls > 0 else 0
+    average = runs/dismissals if dismissals > 0 else runs
+    strike_rate = balls/dismissals
+    overs = balls // 6 + (balls % 6) / 10
+    dot_balls = bowler_vs_stadium_df[
+            (bowler_vs_stadium_df['runs_total'] == 0) &
+            (bowler_vs_stadium_df['extra_type'].isna())
+        ].shape[0]
+    dot_percentage = (dot_balls / balls) * 100
+    fours = bowler_vs_stadium_df[bowler_vs_stadium_df['runs_batter']== 4].shape[0]
+    sixes = bowler_vs_stadium_df[bowler_vs_stadium_df['runs_batter']== 6].shape[0]
+    boundary_percent = (fours + sixes) / balls * 100
+
+    st.subheader(f"Performance of  {bowler} at {venue} ")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write(f"Wickets Taken: {dismissals}")
+        st.write(f"Runs Given: {runs}")
+        st.write(f"Balls Delivered: {balls}")
+        st.write(f"Economy : {economy:.2f}")
+        st.write(f"Average : {average:.2f}")
+        st.write(f"Strike Rate : {strike_rate:.2f}")
+    with col2:
+        st.write(f"Over : {overs}")
+        st.write(f"Dot balls : {dot_balls}")
+        st.write(f"Dot balls percent : {dot_percentage:.2f} %")
+        st.write(f"Fours Given : {fours}")
+        st.write(f"sixes Given : {sixes}")
+        st.write(f"Boundary percent : {boundary_percent:.2f} %")
+    if economy < 6:
+        st.success("Excellent control by bowler ")
+    elif economy > 9:
+        st.error("Expensive at this stadium ")
+    else:
+        st.info("Decent performance ")
+
+
+# Function to analyze stadium vs. Batsman
+def stadium_vs_batsman(venue,batsman):
+
+    if not str(batsman) or not str(venue):
+        return   # stop execution
+
+    stadium_vs_batsman_df = df[(df['batter'] == str(batsman)) & (df['venue'] == str(venue))]
+    if stadium_vs_batsman_df.empty:
+        st.warning(f"No matches played by {batsman} and {venue}.")
+        return
+
+    runs = stadium_vs_batsman_df['runs_batter'].sum()
+    balls = len(stadium_vs_batsman_df)
+    dismissals = stadium_vs_batsman_df['striker_out'].sum()
+    strike_rate = (runs / balls) * 100 if balls > 0 else 0
+    average = runs / dismissals if dismissals > 0 else runs
+    fours = (stadium_vs_batsman_df['runs_batter'] == 4).sum()
+    sixes = (stadium_vs_batsman_df['runs_batter'] == 6).sum()
+    boundary_runs = fours * 4 + sixes * 6
+    boundary_pct = ((fours + sixes) / balls) * 100
+    dot_balls = (stadium_vs_batsman_df['runs_batter'] == 0).sum()
+    dot_pct = (dot_balls / balls) * 100
+    singles = (stadium_vs_batsman_df['runs_batter'] == 1).sum()
+
+
+
+    st.subheader(f"Performance of  {batsman} at {venue} ")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write(f"Runs Scored: {runs}")
+        st.write(f"Balls Faced: {balls}")
+        st.write(f"Dismissals: {dismissals}")
+        st.write(f"Strike rate: {strike_rate:.2f}")
+        st.write(f"Average: {average:.2f}")
+        st.write(f"Single (Strike Rotation): {singles}")
+    with col2:
+        st.write(f"Fours: {fours}")
+        st.write(f"Sixes: {sixes}")
+        st.write(f"Boundary runs: {boundary_runs}")
+        st.write(f"Boundary Percentage: {boundary_pct:.2f} %")
+        st.write(f"Dot Balls: {dot_balls}")
+        st.write(f"Dot percentage: {dot_pct:.2f} %")
+
+
+# Function to analyze team vs. venue (batting)
+def venue_vs_team_batting(team, venue):
+
+    if not str(team) or not str(venue):
+        return   # stop execution
+
+    venue_vs_team_batting_df = df[(df['batting_team'] == str(team)) & (df['venue'] == str(venue))]
+    if venue_vs_team_batting_df.empty:
+        st.warning(f"No encounters found between {team} and {venue}.")
+        return
+
+    
+    runs = venue_vs_team_batting_df['runs_batter'].sum()
+    balls = len(venue_vs_team_batting_df)
+    dismissals = venue_vs_team_batting_df['striker_out'].sum()
+    batting_strike_rate = (runs / balls) * 100 if balls > 0 else 0
+    batting_average = runs / dismissals if dismissals > 0 else runs
+    fours = (venue_vs_team_batting_df['runs_batter'] == 4).sum()
+    sixes = (venue_vs_team_batting_df['runs_batter'] == 6).sum()
+    boundary_runs = fours * 4 + sixes * 6
+    boundary_pct = ((fours + sixes) / balls) * 100
+    dot_balls = (venue_vs_team_batting_df['runs_batter'] == 0).sum()
+    dot_pct = (dot_balls / balls) * 100
+    singles = (venue_vs_team_batting_df['runs_batter'] == 1).sum()
+    
+    st.subheader(f" Batting Performance {team} at {venue} ")
+
+    col1,col2 = st.columns(2)
+    with col1:
+        st.write(f"Runs Scored: {runs}")
+        st.write(f"Balls Faced: {balls}")
+        st.write(f"Batsman Strike Rate: {batting_strike_rate:.2f}")
+        st.write(f"Batting Average: {batting_average:.2f}")
+        st.write(f"Dismissals: {dismissals}")
+        st.write(f"Single (Strike Rotation): {singles}")
+
+    with col2:
+        st.write(f"Fours: {fours}")
+        st.write(f"Sixes: {sixes}")
+        st.write(f"Boundary runs: {boundary_runs}")
+        st.write(f"Boundary Percentage: {boundary_pct:.2f} %")
+        st.write(f"Dot Balls: {dot_balls}")
+        st.write(f"Dot percentage: {dot_pct:.2f} %")
+
+
+# --- Function to analyze team vs venue (bowling) ---
+def venue_vs_team_bowling(team, venue):
+    venue_vs_team_bowling_df = df[(df['bowling_team'] == team) & (df['venue'] == venue)]
+    if venue_vs_team_bowling_df.empty:
+        st.warning(f"No matches played at {venue} by {team}.")
+        return
+    runs = venue_vs_team_bowling_df['runs_batter'].sum()
+    balls = len(venue_vs_team_bowling_df)
+    dismissals = venue_vs_team_bowling_df['striker_out'].sum()
+    economy = (runs*6)/balls if balls > 0 else 0
+    average = runs/dismissals if dismissals > 0 else runs
+    strike_rate = balls/dismissals if dismissals > 0 else balls
+    overs = balls // 6 + (balls % 6) / 10
+    dot_balls = venue_vs_team_bowling_df[
+            (venue_vs_team_bowling_df['runs_total'] == 0) &
+            (venue_vs_team_bowling_df['extra_type'].isna())
+        ].shape[0]
+    dot_percentage = (dot_balls / balls) * 100
+    fours = venue_vs_team_bowling_df[venue_vs_team_bowling_df['runs_batter']== 4].shape[0]
+    sixes = venue_vs_team_bowling_df[venue_vs_team_bowling_df['runs_batter']== 6].shape[0]
+    boundary_percent = (fours + sixes) / balls * 100
+
+    st.subheader(f"Performance of  {team} at {venue} ")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write(f"Wickets Taken: {dismissals}")
+        st.write(f"Runs Given: {runs}")
+        st.write(f"Balls Delivered: {balls}")
+        st.write(f"Economy : {economy:.2f}")
+        st.write(f"Average : {average:.2f}")
+        st.write(f"Strike Rate : {strike_rate:.2f}")
+    with col2:
+        st.write(f"Over : {overs}")
+        st.write(f"Dot balls : {dot_balls}")
+        st.write(f"Dot balls percent : {dot_percentage:.2f} %")
+        st.write(f"Fours Given : {fours}")
+        st.write(f"sixes Given : {sixes}")
+        st.write(f"Boundary percent : {boundary_percent:.2f} %")
+    if economy < 6:
+        st.success("Excellent control by bowlers at this venue ")
+    elif economy > 9:
+        st.error("Expensive at this venue ")
+    else:
+        st.info("Decent performance ")
 
 
 
@@ -176,16 +371,40 @@ with st.sidebar:
     analyze_1 = st.button("Analyze",key='h2h')
     st.markdown('---')
 
-    st.markdown("## Team vs batsman Analysis")
+    st.markdown("## Team vs Batsman Analysis")
     tvb_batsman = st.selectbox('Select Batsman',np.sort(df['batter'].unique()),key='team_vs_batsman_batsman')
     tvb_team = st.selectbox('Select Team',np.sort(df['batting_team'].unique()),key='team_vs_batsman_team')
     analyze_2 = st.button("Analyze",key='team_vs_batsman')
     st.markdown('---')
 
-    st.markdown("## Team vs bowler Analysis")
+    st.markdown("## Team vs Bowler Analysis")
     tv_bowler = st.selectbox('Select Bowler',np.sort(df['bowler'].unique()),key='team_vs_bowler_bowler')
-    tv_team = st.selectbox('Select Team',np.sort(df['batting_team'].unique()),key='team_vs_bowler_team')
+    tv_team = st.selectbox('Select Team',np.sort(df['bowling_team'].unique()),key='team_vs_bowler_team')
     analyze_3 = st.button("Analyze",key='team_vs_bowler')
+    st.markdown('---')
+
+    st.markdown("## Stadium - Bowler Analysis")
+    sv_bowler = st.selectbox('Select Bowler',np.sort(df['bowler'].unique()),key='stadium_vs_bowler_bowler')
+    sv_stadium = st.selectbox('Select Stadium',np.sort(df['venue'].unique()),key='stadium_vs_bowler_team')
+    analyze_4 = st.button("Analyze",key='stadium_vs_bowler')
+    st.markdown('---')
+
+    st.markdown("## Stadium - Batsman Analysis")
+    svs_batsman = st.selectbox('Select Batsman',np.sort(df['batter'].unique()),key='stadium_vs_batsman_bowler')
+    svs_stadium = st.selectbox('Select Stadium',np.sort(df['venue'].unique()),key='stadium_vs_batsman_team')
+    analyze_5 = st.button("Analyze",key='stadium_vs_batsman')
+    st.markdown('---')
+
+    st.markdown("## Stadium - Team Batting Analysis")
+    svt_bat_team = st.selectbox('Select Team',np.sort(df['batting_team'].unique()),key='stadium_vs_team_bat_team')
+    svt_bat_stadium = st.selectbox('Select Stadium',np.sort(df['venue'].unique()),key='stadium_vs_team_bat_stadium')
+    analyze_6 = st.button("Analyze",key='stadium_vs_team_bat')
+    st.markdown('---')
+
+    st.markdown("## Stadium - Team Bowling Analysis")
+    svt_bowl_team = st.selectbox('Select Team',np.sort(df['bowling_team'].unique()),key='stadium_vs_team_bowl_team')
+    svt_bowl_stadium = st.selectbox('Select Stadium',np.sort(df['venue'].unique()),key='stadium_vs_team_bowl_stadium')
+    analyze_7 = st.button("Analyze",key='stadium_vs_team_bowl')
     st.markdown('---')
 
 if analyze_1:
@@ -196,3 +415,15 @@ if analyze_2:
 
 if analyze_3:
     team_vs_bowler(tv_bowler,tv_team)
+
+if analyze_4:
+    bowler_vs_stadium(sv_stadium,sv_bowler)
+
+if analyze_5:
+    stadium_vs_batsman(svs_stadium,svs_batsman)
+
+if analyze_6:
+    venue_vs_team_batting(svt_bat_team,svt_bat_stadium)
+
+if analyze_7:
+    venue_vs_team_bowling(svt_bowl_team,svt_bowl_stadium)
